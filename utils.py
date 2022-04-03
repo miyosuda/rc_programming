@@ -132,15 +132,15 @@ def get_poly_dict(p, var_list):
     so we made workaround to reorder coeffs.
     """
     def reoder_key(key, indices):
-        ret = [-1] * len(var_list)
-        for i,k in enumerate(key):
-            ret[indices[i]] = k
+        ret = [0] * len(var_list)
+        for degree,index in zip(key, indices):
+            ret[index] = degree
         return tuple(ret)
     
     poly_vars = p.args[1:]
     indices = []
-    for v in var_list:
-        index = poly_vars.index(v)
+    for poly_var in poly_vars:
+        index = var_list.index(poly_var)
         indices.append(index)
     d = p.as_dict()
     new_d = {}
