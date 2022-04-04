@@ -166,3 +166,59 @@ def get_target_coeffs(target_coeff_dicts, degrees_list):
 
     target_coeffs = np.array(target_coeffs, dtype=np.float64)
     return target_coeffs
+
+
+import joblib
+import sympy as smp
+from functools import cmp_to_key
+
+
+def process_poly(expr,
+                 x_xdot_list, 
+                 x_xdot_zero, 
+                 series_degree):
+    r_ex = mv_series(expr, 
+                     x_xdot_list, 
+                     x_xdot_zero, 
+                     series_degree)                 
+    # Using sympy instead of symengine for poly().
+    p_c = smp.poly(r_ex)
+    return get_poly_dict(p_c, x_xdot_list)
+
+
+def calc_coeffs(expr,
+                x_xdot_list,
+                x_xdot_zero_list,
+                series_degree,
+                verbose=0):
+    r_dim = len(expr)
+    
+    coeff_dicts = joblib.Parallel(
+        n_jobs=-1,
+        verbose=verbose)( [joblib.delayed(process_poly)(
+            expr[r_index, 0],
+            x_xdot_list,
+            x_xdot_zero_list,
+            series_degree) for r_index in range(r_dim)])
+
+    degrees_sets = set()
+
+    for coeff_dict in coeff_dicts:
+        for degrees in coeff_dict.keys():
+            degrees_sets.add(degrees)
+
+    degrees_list = sorted(list(degrees_sets),
+                          key=cmp_to_key(compare_degrees))
+
+    all_coeffs = []
+    for coeff_dict in coeff_dicts:
+        coeffs = []
+        for degrees in degrees_list:
+            if degrees in coeff_dict:
+                coeffs.append(coeff_dict[degrees])
+            else:
+                coeffs.append(0)            
+        all_coeffs.append(coeffs)
+        
+    all_coeffs = np.array(all_coeffs, dtype=np.float64)
+    return all_coeffs, degrees_list
